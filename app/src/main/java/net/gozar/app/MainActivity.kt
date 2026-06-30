@@ -182,6 +182,8 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
@@ -538,6 +540,34 @@ private fun GozarApp(
     var showPicker by remember { mutableStateOf(false) }
     var showManual by remember { mutableStateOf(false) }
     var editingConfig by remember { mutableStateOf<ProxyConfig?>(null) }
+    val updateCtx = LocalContext.current
+    val updateUri = LocalUriHandler.current
+    var updateAvailable by remember { mutableStateOf<UpdateChecker.Result.Available?>(null) }
+    LaunchedEffect(Unit) {
+        if (System.currentTimeMillis() - store.lastUpdateCheck() >= 24L * 60 * 60 * 1000L) {
+            val ver = runCatching {
+                updateCtx.packageManager.getPackageInfo(updateCtx.packageName, 0).versionName
+            }.getOrNull() ?: ""
+            val r = UpdateChecker.check(ver)
+            store.markUpdateChecked()
+            if (r is UpdateChecker.Result.Available) updateAvailable = r
+        }
+    }
+    updateAvailable?.let { upd ->
+        AlertDialog(
+            onDismissRequest = { updateAvailable = null },
+            title = { Text(t("update_available").format(upd.version)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    runCatching { updateUri.openUri(upd.url) }
+                    updateAvailable = null
+                }) { Text(t("update_now")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { updateAvailable = null }) { Text(t("later")) }
+            }
+        )
+    }
     var usageDetail by remember { mutableStateOf(false) }
     var perAppDetail by remember { mutableStateOf(false) }
     var logsDetail by remember { mutableStateOf(false) }
@@ -1822,6 +1852,22 @@ private fun SettingsScreen(
     }
 }
 
+private val TelegramIcon: ImageVector =
+    ImageVector.Builder(
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).run {
+        addPath(
+            pathData = PathParser().parsePathString(
+                "M9.78,18.65L10.06,14.42L17.74,7.5C18.08,7.19 17.67,7.04 17.22,7.31L7.74,13.3L3.64,12C2.76,11.75 2.75,11.14 3.84,10.7L19.81,4.54C20.54,4.21 21.24,4.72 20.96,5.84L18.24,18.65C18.05,19.55 17.5,19.77 16.74,19.35L12.6,16.3L10.61,18.23C10.38,18.46 10.19,18.65 9.78,18.65Z"
+            ).toNodes(),
+            fill = SolidColor(Color.Black)
+        )
+        build()
+    }
+
 @Composable
 private fun AboutScreen(modifier: Modifier = Modifier) {
     val t = stringsFn()
@@ -1836,6 +1882,10 @@ private fun AboutScreen(modifier: Modifier = Modifier) {
     }
     val xrayVersion = remember { xrayCoreVersion() }
     var privacyOpen by remember { mutableStateOf(false) }
+    var checking by remember { mutableStateOf(false) }
+    var updateStatus by remember { mutableStateOf<String?>(null) }
+    var updateUrl by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -1862,18 +1912,55 @@ private fun AboutScreen(modifier: Modifier = Modifier) {
         Card(
             modifier = Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .clickable { runCatching { uriHandler.openUri("https://t.me/OracleVPNsupport") } },
+                .clickable { runCatching { uriHandler.openUri("https://github.com/SuOracle/GNet") } },
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
         ) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(t("telegram_support"), style = MaterialTheme.typography.bodyLarge)
+                    Text(t("source_code"), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "@OracleVPNsupport",
+                        "github.com/SuOracle/GNet",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+                Icon(Icons.Filled.ChevronRight, contentDescription = null)
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(enabled = !checking) {
+                    val url = updateUrl
+                    if (url != null) {
+                        runCatching { uriHandler.openUri(url) }
+                    } else {
+                        checking = true
+                        updateStatus = t("checking_updates")
+                        scope.launch {
+                            when (val r = UpdateChecker.check(appVersion)) {
+                                is UpdateChecker.Result.Available -> {
+                                    updateStatus = t("update_available").format(r.version)
+                                    updateUrl = r.url
+                                }
+                                UpdateChecker.Result.UpToDate -> updateStatus = t("up_to_date")
+                                UpdateChecker.Result.Failed -> updateStatus = t("update_failed")
+                            }
+                            checking = false
+                        }
+                    }
+                },
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(t("check_updates"), style = MaterialTheme.typography.bodyLarge)
+                    updateStatus?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
                 Icon(Icons.Filled.ChevronRight, contentDescription = null)
             }
@@ -1907,6 +1994,27 @@ private fun AboutScreen(modifier: Modifier = Modifier) {
                     )
                 }
             }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { runCatching { uriHandler.openUri("https://t.me/OracleVPNsupport") } }
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                TelegramIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                t("telegram_support"),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

@@ -258,6 +258,12 @@ class ConfigStore(context: Context) {
         prefs.edit().putStringSet(KEY_EXPANDED_SUBS, cur).apply()
     }
 
+    fun lastUpdateCheck(): Long = prefs.getLong(KEY_LAST_UPDATE_CHECK, 0L)
+
+    fun markUpdateChecked() {
+        prefs.edit().putLong(KEY_LAST_UPDATE_CHECK, System.currentTimeMillis()).apply()
+    }
+
     fun saveLastTest(json: String, timeMillis: Long) {
         prefs.edit().putString(KEY_LAST_TEST, json).putLong(KEY_LAST_TEST_TIME, timeMillis).apply()
     }
@@ -285,6 +291,7 @@ class ConfigStore(context: Context) {
         private const val KEY_PERAPP_MODE = "perapp_mode"
         private const val KEY_PERAPP_LIST = "perapp_list"
         private const val KEY_EXPANDED_SUBS = "expanded_subs"
+        private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
         private const val KEY_LAST_TEST = "last_test_json"
         private const val KEY_LAST_TEST_TIME = "last_test_time"
     }
