@@ -10,10 +10,6 @@ A lightweight Android VPN client built on [Xray-core](https://github.com/XTLS/Xr
 
 ## Features
 
-<p align="center">
-  <img src="docs/images/Artboard%203.png" width="720" alt="GRoute features">
-</p>
-
 - **Multiple protocols** — VLESS, VMess, Trojan, and Shadowsocks.
 - **Modern transports** — REALITY, TLS, WebSocket, gRPC, HTTPUpgrade, XHTTP, and plain TCP.
 - **Cloudflare WARP** — register and add a WARP configuration in one tap.
@@ -31,6 +27,15 @@ A lightweight Android VPN client built on [Xray-core](https://github.com/XTLS/Xr
 - **About** — shows the bundled Xray-core version, developer, and privacy policy.
 - **Bilingual** — full English and Persian UI with right-to-left support.
 - **Themes** — light, dark, and pure-black AMOLED.
+
+<details>
+<summary><b>App screenshots</b></summary>
+
+<p align="center">
+  <img src="docs/images/Artboard%203.png" width="720" alt="GRoute features">
+</p>
+
+</details>
 
 ## Download
 
