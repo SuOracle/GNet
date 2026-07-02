@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="GRouteTransparentBlack.png" width="220" alt="GRoute">
+  <img src="docs/images/GRouteTransparentBlack.png" width="220" alt="GRoute">
 </p>
 
 # GRoute (جی‌روت)
@@ -11,7 +11,7 @@ A lightweight Android VPN client built on [Xray-core](https://github.com/XTLS/Xr
 ## Features
 
 <p align="center">
-  <img src="Artboard%203.png" width="720" alt="GRoute features">
+  <img src="docs/images/Artboard%203.png" width="720" alt="GRoute features">
 </p>
 
 - **Multiple protocols** — VLESS, VMess, Trojan, and Shadowsocks.
